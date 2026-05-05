@@ -16,6 +16,30 @@ import Search from './components/Search';
 export default function App() {
   const [screen, setScreen] = useState('home');
   const [lightMode, setLightMode] = useState(() => localStorage.getItem('cia3_theme') === 'light');
+  const [notifEnabled, setNotifEnabled] = useState(() => localStorage.getItem('cia3_notif_enabled') === '1');
+
+  async function toggleNotif() {
+    if (!('Notification' in window)) return;
+    if (notifEnabled) {
+      localStorage.removeItem('cia3_notif_enabled');
+      setNotifEnabled(false);
+    } else {
+      if (Notification.permission === 'granted') {
+        localStorage.setItem('cia3_notif_enabled', '1');
+        setNotifEnabled(true);
+        new Notification('CIA Part 3 Study Reminder 📚', { body: "Reminders enabled! We'll nudge you if you haven't studied today.", icon: '/favicon.ico' });
+      } else if (Notification.permission === 'default') {
+        const perm = await Notification.requestPermission();
+        if (perm === 'granted') {
+          localStorage.setItem('cia3_notif_enabled', '1');
+          setNotifEnabled(true);
+          new Notification('CIA Part 3 Study Reminder 📚', { body: "Reminders enabled! We'll nudge you if you haven't studied today.", icon: '/favicon.ico' });
+        }
+      } else {
+        alert('Notifications are blocked in your browser. Please allow them in your browser settings, then try again.');
+      }
+    }
+  }
 
   useEffect(() => {
     document.documentElement.classList.toggle('light-mode', lightMode);
@@ -30,7 +54,7 @@ export default function App() {
       const today = new Date().toDateString();
       const studiedToday = (data.sessionHistory || []).some(s => new Date(s.date).toDateString() === today);
       if (studiedToday) return;
-      if (Notification.permission === 'granted') {
+      if (Notification.permission === 'granted' && localStorage.getItem('cia3_notif_enabled') === '1') {
         new Notification('CIA Part 3 Study Reminder 📚', {
           body: "You haven't studied today yet — keep your streak going!",
           icon: '/favicon.ico'
@@ -41,7 +65,7 @@ export default function App() {
   }, []);
 
   return (
-    <Layout screen={screen} onNavigate={setScreen} lightMode={lightMode} onToggleTheme={() => setLightMode(m => !m)}>
+    <Layout screen={screen} onNavigate={setScreen} lightMode={lightMode} onToggleTheme={() => setLightMode(m => !m)} notifEnabled={notifEnabled} onToggleNotif={toggleNotif}>
       {screen === 'home'      && <Home onNavigate={setScreen} />}
       {screen === 'study'     && <StudyMode onNavigate={setScreen} />}
       {screen === 'quiz'      && <QuizMode onNavigate={setScreen} />}

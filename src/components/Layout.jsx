@@ -29,7 +29,7 @@ const NAV_GROUPS = [
   },
 ];
 
-function Sidebar({ screen, onNavigate, onClose, lightMode, onToggleTheme }) {
+function Sidebar({ screen, onNavigate, onClose, lightMode, onToggleTheme, notifEnabled, onToggleNotif }) {
   return (
     <div className="flex flex-col h-full">
       <div className="px-5 py-6 border-b border-slate-800 flex items-center justify-between">
@@ -66,7 +66,7 @@ function Sidebar({ screen, onNavigate, onClose, lightMode, onToggleTheme }) {
           </div>
         ))}
       </nav>
-      <div className="p-3 border-t border-slate-800">
+      <div className="p-3 border-t border-slate-800 space-y-1">
         <button
           onClick={onToggleTheme}
           className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition-colors"
@@ -74,26 +74,33 @@ function Sidebar({ screen, onNavigate, onClose, lightMode, onToggleTheme }) {
           <span className="text-base">{lightMode ? '🌙' : '☀️'}</span>
           <span>{lightMode ? 'Dark Mode' : 'Light Mode'}</span>
         </button>
+        <button
+          onClick={onToggleNotif}
+          className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm hover:bg-slate-800 transition-colors ${notifEnabled ? 'text-amber-400' : 'text-slate-400 hover:text-slate-200'}`}
+        >
+          <span className="text-base">{notifEnabled ? '🔔' : '🔕'}</span>
+          <span>{notifEnabled ? 'Reminders On' : 'Reminders Off'}</span>
+        </button>
       </div>
     </div>
   );
 }
 
-export default function Layout({ screen, onNavigate, children, lightMode, onToggleTheme }) {
+export default function Layout({ screen, onNavigate, children, lightMode, onToggleTheme, notifEnabled, onToggleNotif }) {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const currentLabel = NAV_GROUPS.flatMap(g => g.items).find(i => i.id === screen)?.label || 'CIA Part 3';
 
   return (
     <div className="min-h-screen bg-slate-900 text-slate-100 flex">
       <aside className="hidden lg:flex lg:flex-col lg:w-64 lg:fixed lg:h-screen bg-slate-950 border-r border-slate-800 z-40">
-        <Sidebar screen={screen} onNavigate={onNavigate} lightMode={lightMode} onToggleTheme={onToggleTheme} />
+        <Sidebar screen={screen} onNavigate={onNavigate} lightMode={lightMode} onToggleTheme={onToggleTheme} notifEnabled={notifEnabled} onToggleNotif={onToggleNotif} />
       </aside>
 
       {drawerOpen && (
         <div className="lg:hidden fixed inset-0 z-50 flex">
           <div className="absolute inset-0 bg-black/60" onClick={() => setDrawerOpen(false)} />
           <div className="relative w-72 bg-slate-950 border-r border-slate-800 h-full overflow-hidden flex flex-col">
-            <Sidebar screen={screen} onNavigate={onNavigate} onClose={() => setDrawerOpen(false)} lightMode={lightMode} onToggleTheme={onToggleTheme} />
+            <Sidebar screen={screen} onNavigate={onNavigate} onClose={() => setDrawerOpen(false)} lightMode={lightMode} onToggleTheme={onToggleTheme} notifEnabled={notifEnabled} onToggleNotif={onToggleNotif} />
           </div>
         </div>
       )}
@@ -108,6 +115,7 @@ export default function Layout({ screen, onNavigate, children, lightMode, onTogg
           <span className="font-semibold text-slate-100 truncate">{currentLabel}</span>
           <div className="ml-auto flex items-center gap-1 shrink-0">
             <button onClick={() => { onNavigate('search'); setDrawerOpen(false); }} className="p-2 text-slate-400 hover:text-slate-200 rounded-lg text-sm">🔍</button>
+            <button onClick={onToggleNotif} className={`p-2 rounded-lg text-sm ${notifEnabled ? 'text-amber-400' : 'text-slate-400 hover:text-slate-200'}`}>{notifEnabled ? '🔔' : '🔕'}</button>
             <button onClick={onToggleTheme} className="p-2 text-slate-400 hover:text-slate-200 rounded-lg text-sm">{lightMode ? '🌙' : '☀️'}</button>
           </div>
         </div>
