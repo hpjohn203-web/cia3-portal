@@ -1,8 +1,9 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef } from 'react';
 import questions from '../data/questions.json';
 import { useProgress } from '../hooks/useProgress';
 
 const TOPICS = ['All', ...Array.from(new Set(questions.map(q => q.topic))).sort()];
+const SWIPE_THRESHOLD = 60;
 
 export default function StudyMode({ onNavigate }) {
   const { recordAnswer, getDueQuestions, toggleBookmark, isBookmarked, progress } = useProgress();
@@ -14,6 +15,11 @@ export default function StudyMode({ onNavigate }) {
   const [sessionCorrect, setSessionCorrect] = useState(0);
   const [sessionTotal, setSessionTotal] = useState(0);
   const [mode, setMode] = useState('all');
+  const [swipeHint, setSwipeHint] = useState(null); // 'left' | 'right' | null
+
+  const touchStartX = useRef(null);
+  const touchStartY = useRef(null);
+  const didSwipe = useRef(false);
 
   const deck = useMemo(() => {
     let pool = topicFilter === 'All' ? questions : questions.filter(q => q.topic === topicFilter);
@@ -26,9 +32,10 @@ export default function StudyMode({ onNavigate }) {
   function handleFlip() { if (!flipped) setFlipped(true); }
 
   function handleAnswer(correct) {
-    if (!card) return;
+    if (!card || showResult) return;
     recordAnswer(card.id, correct);
     setShowResult(correct ? 'correct' : 'wrong');
+    setSwipeHint(null);
     setSessionTotal(t => t + 1);
     if (correct) setSessionCorrect(c => c + 1);
     setTimeout(() => {
@@ -36,6 +43,44 @@ export default function StudyMode({ onNavigate }) {
       setFlipped(false);
       setCardIndex(i => (i + 1) % deck.length);
     }, 600);
+  }
+
+  function onTouchStart(e) {
+    touchStartX.current = e.targetTouches[0].clientX;
+    touchStartY.current = e.targetTouches[0].clientY;
+    didSwipe.current = false;
+    setSwipeHint(null);
+  }
+
+  function onTouchMove(e) {
+    if (touchStartX.current === null) return;
+    const dx = e.targetTouches[0].clientX - touchStartX.current;
+    const dy = e.targetTouches[0].clientY - touchStartY.current;
+    if (Math.abs(dx) > 20 && Math.abs(dx) > Math.abs(dy)) {
+      if (flipped && !showResult) setSwipeHint(dx > 0 ? 'right' : 'left');
+    }
+  }
+
+  function onTouchEnd(e) {
+    if (touchStartX.current === null) return;
+    const dx = e.changedTouches[0].clientX - touchStartX.current;
+    const dy = e.changedTouches[0].clientY - touchStartY.current;
+    setSwipeHint(null);
+
+    if (Math.abs(dx) > SWIPE_THRESHOLD && Math.abs(dx) > Math.abs(dy) * 1.2) {
+      didSwipe.current = true;
+      if (!flipped) {
+        handleFlip();
+      } else if (!showResult) {
+        handleAnswer(dx > 0);
+      }
+    }
+    touchStartX.current = null;
+  }
+
+  function handleCardClick() {
+    if (didSwipe.current) { didSwipe.current = false; return; }
+    handleFlip();
   }
 
   if (!card) {
@@ -58,6 +103,7 @@ export default function StudyMode({ onNavigate }) {
         <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
         Dashboard
       </button>
+
       {/* Controls bar */}
       <div className="flex items-center gap-2 mb-3">
         <button onClick={() => setShowTopicPicker(true)}
@@ -78,10 +124,7 @@ export default function StudyMode({ onNavigate }) {
           <button
             onClick={() => toggleBookmark(card.id)}
             className={`text-base transition-colors ${bookmarked ? 'text-amber-400' : 'text-slate-600 hover:text-slate-400'}`}
-            title={bookmarked ? 'Remove bookmark' : 'Bookmark this card'}
-          >
-            🔖
-          </button>
+          >🔖</button>
         </div>
       </div>
       <div className="h-1 bg-slate-800 rounded-full overflow-hidden mb-4">
@@ -90,8 +133,20 @@ export default function StudyMode({ onNavigate }) {
 
       {/* Flashcard */}
       <div className="flex-1 flex flex-col pb-4">
-        <div className="card-flip-container flex-1 cursor-pointer" style={{ minHeight: '320px' }} onClick={handleFlip}>
-          <div className={`card-flip-inner ${flipped ? 'flipped' : ''}`} style={{ minHeight: '320px' }}>
+        <div
+          className="card-flip-container flex-1 cursor-pointer select-none"
+          style={{ minHeight: '320px' }}
+          onClick={handleCardClick}
+          onTouchStart={onTouchStart}
+          onTouchMove={onTouchMove}
+          onTouchEnd={onTouchEnd}
+        >
+          <div
+            className={`card-flip-inner transition-transform ${flipped ? 'flipped' : ''} ${
+              swipeHint === 'right' ? 'rotate-1 scale-[1.01]' : swipeHint === 'left' ? '-rotate-1 scale-[1.01]' : ''
+            }`}
+            style={{ minHeight: '320px' }}
+          >
             {/* Front */}
             <div className="card-face flex flex-col bg-slate-800 rounded-3xl p-6 border border-slate-700">
               <div className="flex items-start justify-between mb-3">
@@ -99,10 +154,16 @@ export default function StudyMode({ onNavigate }) {
                 <span className="text-xs text-slate-500 bg-slate-700 px-2 py-0.5 rounded-full truncate max-w-[140px]">{card.topic}</span>
               </div>
               <p className="text-sm leading-relaxed flex-1">{card.question}</p>
-              <div className="mt-4 text-center text-xs text-slate-500">Tap to reveal answer</div>
+              <div className="mt-4 text-center text-xs text-slate-500">
+                Tap to reveal · <span className="lg:hidden">or swipe</span>
+              </div>
             </div>
             {/* Back */}
-            <div className="card-face card-back flex flex-col bg-slate-800 rounded-3xl p-6 border border-amber-500/40">
+            <div className={`card-face card-back flex flex-col bg-slate-800 rounded-3xl p-6 border transition-colors ${
+              swipeHint === 'right' ? 'border-emerald-500/60 bg-emerald-500/5' :
+              swipeHint === 'left'  ? 'border-red-500/60 bg-red-500/5' :
+              'border-amber-500/40'
+            }`}>
               <span className="text-xs text-amber-400 font-semibold uppercase tracking-wider mb-3">Answer</span>
               <div className="mb-3">
                 <span className="inline-flex items-center gap-2 bg-amber-500/20 text-amber-300 px-3 py-1.5 rounded-xl text-sm font-bold">
@@ -114,8 +175,17 @@ export default function StudyMode({ onNavigate }) {
           </div>
         </div>
 
+        {/* Swipe hint row (mobile only) */}
         {flipped && !showResult && (
-          <div className="grid grid-cols-2 gap-3 mt-4">
+          <div className="lg:hidden flex items-center justify-between text-xs mt-2 mb-1 px-1 select-none">
+            <span className={`font-medium transition-colors ${swipeHint === 'left' ? 'text-red-400' : 'text-red-500/40'}`}>← Wrong</span>
+            <span className="text-slate-600">swipe or tap buttons</span>
+            <span className={`font-medium transition-colors ${swipeHint === 'right' ? 'text-emerald-400' : 'text-emerald-500/40'}`}>Correct →</span>
+          </div>
+        )}
+
+        {flipped && !showResult && (
+          <div className="grid grid-cols-2 gap-3 mt-2">
             <button onClick={() => handleAnswer(false)}
               className="bg-red-500/20 border border-red-500/40 text-red-400 font-semibold py-4 rounded-2xl active:scale-95 transition-all">
               ✗  Got it wrong

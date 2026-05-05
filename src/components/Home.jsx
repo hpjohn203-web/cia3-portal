@@ -39,8 +39,8 @@ export default function Home({ onNavigate }) {
   const topicStats = useMemo(() => getTopicStats(questions), [progress]);
   const masteredTopics = useMemo(() => getMasteredTopics(questions), [progress]);
   const streak = getStudyStreak();
-  const [showWelcome, setShowWelcome] = useState(() => !localStorage.getItem('cia3_welcome_seen'));
-  function dismissWelcome() { localStorage.setItem('cia3_welcome_seen', '1'); setShowWelcome(false); }
+  const [showWelcome, setShowWelcome] = useState(() => !sessionStorage.getItem('cia3_welcome_shown'));
+  function dismissWelcome() { sessionStorage.setItem('cia3_welcome_shown', '1'); setShowWelcome(false); }
   const todayCount = getTodayCount();
   const goalPerDay = progress.studyPlan?.goalPerDay || 20;
   const goalPct = Math.min(100, Math.round((todayCount / goalPerDay) * 100));

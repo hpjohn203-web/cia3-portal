@@ -22,6 +22,27 @@ export default function App() {
     localStorage.setItem('cia3_theme', lightMode ? 'light' : 'dark');
   }, [lightMode]);
 
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (!('Notification' in window)) return;
+      const raw = localStorage.getItem('cia3_progress');
+      const data = raw ? JSON.parse(raw) : {};
+      const today = new Date().toDateString();
+      const studiedToday = (data.sessionHistory || []).some(s => new Date(s.date).toDateString() === today);
+      if (studiedToday) return;
+      const show = () => new Notification('CIA Part 3 Study Reminder 📚', {
+        body: "You haven't studied today yet — keep your streak going!",
+        icon: '/favicon.ico'
+      });
+      if (Notification.permission === 'granted') {
+        show();
+      } else if (Notification.permission === 'default') {
+        Notification.requestPermission().then(perm => { if (perm === 'granted') show(); });
+      }
+    }, 4000);
+    return () => clearTimeout(timer);
+  }, []);
+
   return (
     <Layout screen={screen} onNavigate={setScreen} lightMode={lightMode} onToggleTheme={() => setLightMode(m => !m)}>
       {screen === 'home'      && <Home onNavigate={setScreen} />}
