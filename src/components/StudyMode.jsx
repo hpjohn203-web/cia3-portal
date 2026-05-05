@@ -53,6 +53,11 @@ export default function StudyMode({ onNavigate }) {
 
   return (
     <div className="flex flex-col max-w-2xl mx-auto px-4 py-4 min-h-[calc(100vh-3.5rem)] lg:min-h-screen">
+      {/* Mobile back */}
+      <button onClick={() => onNavigate('home')} className="lg:hidden flex items-center gap-1.5 text-xs text-slate-500 hover:text-slate-300 mb-3 transition-colors">
+        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
+        Dashboard
+      </button>
       {/* Controls bar */}
       <div className="flex items-center gap-2 mb-3">
         <button onClick={() => setShowTopicPicker(true)}

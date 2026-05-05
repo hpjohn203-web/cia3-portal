@@ -1,7 +1,20 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import questions from '../data/questions.json';
 import { GLOSSARY } from '../data/glossary.js';
 import { useProgress } from '../hooks/useProgress';
+
+const HOW_TO_ITEMS = [
+  { icon: '🃏', title: 'Flashcards', desc: 'Spaced repetition cards covering all CIA Part 3 knowledge areas. Cards you struggle with come back sooner.' },
+  { icon: '⏱️', title: 'Quiz Mode', desc: 'Timed MCQ practice mirroring the IIA exam format. Choose topic, question count, and timer.' },
+  { icon: '🎯', title: 'Drill Weak Topics', desc: 'Appears on the dashboard once enough data exists. One tap auto-starts a quiz on your 3 lowest-accuracy CIA Part 3 topics.' },
+  { icon: '📊', title: 'My Progress', desc: 'Full accuracy breakdown by CIA Part 3 domain, session history, and CSV export for offline review.' },
+  { icon: '📖', title: 'Glossary', desc: 'Key CIA Part 3 definitions covering Financial Management, Governance, Risk, IT and more.' },
+  { icon: '🧮', title: 'Formulas', desc: 'Financial ratios, NPV, break-even and other CIA Part 3 calculations with worked examples.' },
+  { icon: '🖼️', title: 'Diagrams', desc: 'Visual frameworks: COSO, ERM, Three Lines model, Balanced Scorecard and more.' },
+  { icon: '📅', title: 'Study Planner', desc: 'Set your CIA Part 3 exam date, daily question goal, and plan study days on the calendar.' },
+  { icon: '⚠️', title: 'Error Log', desc: 'Every wrong quiz answer is logged here by CIA Part 3 domain for targeted review.' },
+  { icon: '🔖', title: 'Bookmarks', desc: 'Save any question during flashcards or quiz — review them anytime in Bookmarks.' },
+];
 
 const TOPIC_ICONS = {
   'Financial': '💰', 'Finance': '💰', 'Budget': '💰', 'Capital': '💰', 'Cost': '💰',
@@ -26,6 +39,8 @@ export default function Home({ onNavigate }) {
   const topicStats = useMemo(() => getTopicStats(questions), [progress]);
   const masteredTopics = useMemo(() => getMasteredTopics(questions), [progress]);
   const streak = getStudyStreak();
+  const [showWelcome, setShowWelcome] = useState(() => !localStorage.getItem('cia3_welcome_seen'));
+  function dismissWelcome() { localStorage.setItem('cia3_welcome_seen', '1'); setShowWelcome(false); }
   const todayCount = getTodayCount();
   const goalPerDay = progress.studyPlan?.goalPerDay || 20;
   const goalPct = Math.min(100, Math.round((todayCount / goalPerDay) * 100));
@@ -60,6 +75,41 @@ export default function Home({ onNavigate }) {
   return (
     <div className="px-4 py-6 lg:px-8 lg:py-8 max-w-6xl mx-auto">
 
+      {/* Welcome modal */}
+      {showWelcome && (
+        <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4" onClick={dismissWelcome}>
+          <div className="bg-slate-900 border border-slate-700 rounded-3xl max-w-lg w-full max-h-[88vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+            <div className="px-6 py-5 border-b border-slate-800 flex items-start justify-between gap-3">
+              <div>
+                <p className="text-xs text-amber-400 font-semibold uppercase tracking-wider mb-1">ApexCert Publications</p>
+                <h2 className="text-xl font-bold">Welcome to CIA Part 3 Prep! 👋</h2>
+                <p className="text-sm text-slate-400 mt-1">Here's everything this portal gives you:</p>
+              </div>
+              <button onClick={dismissWelcome} className="text-slate-400 hover:text-slate-200 text-xl p-1 shrink-0 mt-1">✕</button>
+            </div>
+            <div className="px-6 py-4 space-y-3">
+              {HOW_TO_ITEMS.map(({ icon, title, desc }) => (
+                <div key={title} className="flex gap-3">
+                  <span className="text-xl shrink-0 mt-0.5">{icon}</span>
+                  <div>
+                    <p className="font-semibold text-sm text-slate-100">{title}</p>
+                    <p className="text-xs text-slate-400 leading-relaxed mt-0.5">{desc}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="px-6 pb-6 pt-2 border-t border-slate-800 space-y-3">
+              <div className="bg-slate-800 rounded-xl p-3 text-xs text-slate-400 leading-relaxed">
+                💡 <strong className="text-slate-300">Navigation:</strong> Use the <span className="text-amber-400 font-bold">sidebar</span> on desktop or tap <span className="text-amber-400 font-bold">☰</span> on mobile to switch between sections. Tap <span className="text-amber-400 font-bold">? Help</span> on the dashboard to reopen this guide anytime.
+              </div>
+              <button onClick={dismissWelcome} className="w-full bg-amber-500 hover:bg-amber-400 text-slate-900 font-bold py-3.5 rounded-2xl transition-colors active:scale-95">
+                Let's Get Started 🚀
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Exam countdown banner */}
       {daysToExam !== null && (
         <div className={`mb-5 rounded-2xl px-4 py-3 flex items-center gap-3 ${
@@ -93,7 +143,10 @@ export default function Home({ onNavigate }) {
           <h1 className="text-3xl font-bold text-amber-400">CIA Part 3</h1>
           <p className="text-slate-400 text-sm mt-1">Exam Prep Portal · ApexCert Publications</p>
         </div>
-        <span className="text-sm text-slate-400 bg-slate-800 px-3 py-1.5 rounded-full">{questions.length} Questions</span>
+        <div className="flex items-center gap-2">
+          <button onClick={() => setShowWelcome(true)} className="text-xs text-slate-500 hover:text-slate-300 border border-slate-700 hover:border-slate-600 px-2.5 py-1.5 rounded-lg transition-colors">? Help</button>
+          <span className="text-sm text-slate-400 bg-slate-800 px-3 py-1.5 rounded-full">{questions.length} Questions</span>
+        </div>
       </div>
 
       {/* Mobile header */}

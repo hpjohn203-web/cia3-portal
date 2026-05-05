@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { useProgress } from '../hooks/useProgress';
 
+
 function getWeekDays(offset = 0) {
   const days = [];
   const today = new Date();
@@ -23,7 +24,7 @@ const GOAL_OPTIONS = [10, 20, 30, 50, 100];
 const DAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
 export default function StudyPlanner({ onNavigate }) {
-  const { progress, setGoalPerDay, togglePlannedDay, getStudyStreak } = useProgress();
+  const { progress, setGoalPerDay, togglePlannedDay, getStudyStreak, getTodayCount } = useProgress();
   const plan = progress.studyPlan || { goalPerDay: 20, plannedDays: {} };
   const streak = getStudyStreak();
 
@@ -55,12 +56,15 @@ export default function StudyPlanner({ onNavigate }) {
     return { studied, planned, weekQuestions, weekCorrect };
   }, [weekDays, studiedDays, plan.plannedDays, progress.sessionHistory]);
 
-  const todaySessions = progress.sessionHistory.filter(s => new Date(s.date).toISOString().slice(0, 10) === todayKey);
-  const todayQuestions = todaySessions.reduce((a, s) => a + s.total, 0);
+  const todayQuestions = getTodayCount();
   const goalProgress = Math.min(Math.round((todayQuestions / plan.goalPerDay) * 100), 100);
 
   return (
     <div className="px-4 py-6 lg:px-8 lg:py-8 max-w-4xl mx-auto">
+      <button onClick={() => onNavigate('home')} className="lg:hidden flex items-center gap-1.5 text-xs text-slate-500 hover:text-slate-300 mb-4 transition-colors">
+        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
+        Dashboard
+      </button>
       <h1 className="text-xl lg:text-2xl font-bold mb-1">Study Planner</h1>
       <p className="text-sm text-slate-400 mb-6">Track your study schedule and daily goals</p>
 
