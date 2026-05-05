@@ -78,26 +78,28 @@ export default function Home({ onNavigate }) {
 
       {/* Welcome modal */}
       {showWelcome && (
-        <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4" onClick={dismissWelcome}>
-          <div className="bg-slate-900 border border-slate-700 rounded-3xl max-w-lg w-full max-h-[88vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+        <div className="fixed inset-0 bg-black/80 z-50 flex items-end lg:items-center justify-center p-0 lg:p-6" onClick={dismissWelcome}>
+          <div className="bg-slate-900 border border-slate-700 rounded-t-3xl lg:rounded-3xl w-full lg:max-w-2xl max-h-[88vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
             <div className="px-6 py-5 border-b border-slate-800 flex items-start justify-between gap-3">
               <div>
                 <p className="text-xs text-amber-400 font-semibold uppercase tracking-wider mb-1">ApexCert Publications</p>
-                <h2 className="text-xl font-bold">Welcome to CIA Part 3 Prep! 👋</h2>
+                <h2 className="text-xl lg:text-2xl font-bold">Welcome to CIA Part 3 Prep! 👋</h2>
                 <p className="text-sm text-slate-400 mt-1">Here's everything this portal gives you:</p>
               </div>
               <button onClick={dismissWelcome} className="text-slate-400 hover:text-slate-200 text-xl p-1 shrink-0 mt-1">✕</button>
             </div>
-            <div className="px-6 py-4 space-y-3">
-              {HOW_TO_ITEMS.map(({ icon, title, desc }) => (
-                <div key={title} className="flex gap-3">
-                  <span className="text-xl shrink-0 mt-0.5">{icon}</span>
-                  <div>
-                    <p className="font-semibold text-sm text-slate-100">{title}</p>
-                    <p className="text-xs text-slate-400 leading-relaxed mt-0.5">{desc}</p>
+            <div className="px-6 py-4">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+                {HOW_TO_ITEMS.map(({ icon, title, desc }) => (
+                  <div key={title} className="flex gap-3 bg-slate-800/60 rounded-2xl p-3">
+                    <span className="text-xl shrink-0 mt-0.5">{icon}</span>
+                    <div>
+                      <p className="font-semibold text-sm text-slate-100">{title}</p>
+                      <p className="text-xs text-slate-400 leading-relaxed mt-0.5">{desc}</p>
+                    </div>
                   </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
             <div className="px-6 pb-6 pt-2 border-t border-slate-800 space-y-3">
               <div className="bg-slate-800 rounded-xl p-3 text-xs text-slate-400 leading-relaxed">
