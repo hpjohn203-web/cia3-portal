@@ -10,6 +10,7 @@ const defaultProgress = () => ({
   examDate: null,
   sessionDetails: [],
   studyPlan: { goalPerDay: 20, plannedDays: {} },
+  dailyActivity: {},
 });
 
 export function useProgress() {
@@ -29,6 +30,9 @@ export function useProgress() {
     setProgress(prev => {
       const stats = prev.cardStats[questionId] || { correct: 0, wrong: 0, interval: 1 };
       const newInterval = correct ? Math.min(stats.interval * 2, 64) : 1;
+      const today = new Date().toDateString();
+      const daily = { ...(prev.dailyActivity || {}) };
+      daily[today] = (daily[today] || 0) + 1;
       return {
         ...prev,
         cardStats: {
@@ -40,8 +44,14 @@ export function useProgress() {
             nextDue: Date.now() + newInterval * 24 * 60 * 60 * 1000,
           },
         },
+        dailyActivity: daily,
       };
     });
+  }
+
+  function getTodayCount() {
+    const today = new Date().toDateString();
+    return (progress.dailyActivity || {})[today] || 0;
   }
 
   function addToErrorLog(question, selectedAnswer) {
@@ -154,6 +164,6 @@ export function useProgress() {
   return {
     progress, recordAnswer, addToErrorLog, clearErrorLog, saveSession,
     toggleBookmark, isBookmarked, setExamDate, setGoalPerDay, togglePlannedDay,
-    getTopicStats, getDueQuestions, getStudyStreak, getMasteredTopics, resetProgress,
+    getTopicStats, getDueQuestions, getStudyStreak, getMasteredTopics, getTodayCount, resetProgress,
   };
 }

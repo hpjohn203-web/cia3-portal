@@ -22,6 +22,23 @@ export default function QuizMode({ onNavigate }) {
   const currentQ = quiz[qIndex];
   const isAnswered = selected !== null;
 
+  // Auto-start drill from "Drill Weak Topics" button on dashboard
+  useEffect(() => {
+    const raw = sessionStorage.getItem('drillWeakTopics');
+    if (raw) {
+      sessionStorage.removeItem('drillWeakTopics');
+      try {
+        const topics = JSON.parse(raw);
+        const pool = questions.filter(q => topics.includes(q.topic));
+        if (pool.length > 0) {
+          const shuffled = [...pool].sort(() => Math.random() - 0.5).slice(0, Math.min(20, pool.length));
+          setTopicFilter('Weak Topics');
+          setQuiz(shuffled); setQIndex(0); setSelected(null); setAnswers([]); setShowExplain(false); setPhase('quiz');
+        }
+      } catch {}
+    }
+  }, []);
+
   useEffect(() => {
     if (phase !== 'quiz' || !timerOn || isAnswered) return;
     setTimeLeft(timePerQ);

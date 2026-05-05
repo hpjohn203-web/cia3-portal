@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import questions from '../data/questions.json';
+import { GLOSSARY } from '../data/glossary.js';
 import { useProgress } from '../hooks/useProgress';
 
 const TOPIC_ICONS = {
@@ -21,10 +22,23 @@ function getIcon(topic) {
 }
 
 export default function Home({ onNavigate }) {
-  const { progress, getTopicStats, getStudyStreak, getMasteredTopics, resetProgress } = useProgress();
+  const { progress, getTopicStats, getStudyStreak, getMasteredTopics, getTodayCount, resetProgress } = useProgress();
   const topicStats = useMemo(() => getTopicStats(questions), [progress]);
   const masteredTopics = useMemo(() => getMasteredTopics(questions), [progress]);
   const streak = getStudyStreak();
+  const todayCount = getTodayCount();
+  const goalPerDay = progress.studyPlan?.goalPerDay || 20;
+  const goalPct = Math.min(100, Math.round((todayCount / goalPerDay) * 100));
+  const goalMet = todayCount >= goalPerDay;
+  const dailyVocab = GLOSSARY[Math.floor(Date.now() / 86400000) % GLOSSARY.length];
+  const weakTopics = useMemo(() =>
+    Object.entries(topicStats)
+      .filter(([, s]) => s.attempted >= 3 && Math.round((s.correct / s.attempted) * 100) < 60)
+      .sort((a, b) => (a[1].correct / a[1].attempted) - (b[1].correct / b[1].attempted))
+      .slice(0, 3)
+      .map(([t]) => t),
+    [topicStats]
+  );
 
   const daysToExam = useMemo(() => {
     if (!progress.examDate) return null;
@@ -118,6 +132,50 @@ export default function Home({ onNavigate }) {
             <StatCard label="Streak"   value={`${streak}d`} color="violet" />
           </div>
 
+          {/* Today's Goal */}
+          <div className="bg-slate-800 rounded-2xl px-4 py-4">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <span className="text-base">{goalMet ? '✅' : '🎯'}</span>
+                <p className="text-sm font-semibold">Today's Goal</p>
+              </div>
+              <button onClick={() => onNavigate('planner')} className="text-xs text-slate-500 hover:text-slate-300 transition-colors">
+                {goalPerDay} Qs/day ›
+              </button>
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="flex-1">
+                <div className="h-2.5 bg-slate-700 rounded-full overflow-hidden">
+                  <div className={`h-full rounded-full progress-bar-fill ${goalMet ? 'bg-emerald-400' : 'bg-amber-400'}`} style={{ width: `${goalPct}%` }} />
+                </div>
+              </div>
+              <span className={`text-sm font-bold shrink-0 ${goalMet ? 'text-emerald-400' : 'text-amber-400'}`}>{todayCount}/{goalPerDay}</span>
+            </div>
+            <p className="text-xs mt-1.5 text-slate-500">
+              {goalMet ? '🎉 Goal complete! Keep the momentum going.' : todayCount === 0 ? 'Start studying to track today\'s progress.' : `${goalPerDay - todayCount} more question${goalPerDay - todayCount !== 1 ? 's' : ''} to reach your goal.`}
+            </p>
+          </div>
+
+          {/* Drill Weak Topics */}
+          {weakTopics.length > 0 && (
+            <div>
+              <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Smart Practice</h2>
+              <button
+                onClick={() => { sessionStorage.setItem('drillWeakTopics', JSON.stringify(weakTopics)); onNavigate('quiz'); }}
+                className="w-full bg-red-500/10 border border-red-500/30 hover:border-red-500/50 hover:bg-red-500/15 rounded-2xl p-4 text-left transition-all active:scale-[0.98]"
+              >
+                <div className="flex items-center gap-3">
+                  <span className="text-2xl">🎯</span>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold text-sm text-red-300">Drill Weak Topics</p>
+                    <p className="text-xs text-slate-400 mt-0.5 truncate">Focus: {weakTopics.join(' · ')}</p>
+                  </div>
+                  <span className="shrink-0 text-xs bg-red-500/20 text-red-400 px-2.5 py-1 rounded-full">{weakTopics.length} topic{weakTopics.length > 1 ? 's' : ''}</span>
+                </div>
+              </button>
+            </div>
+          )}
+
           {/* Action buttons */}
           <div>
             <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Quick Start</h2>
@@ -145,6 +203,18 @@ export default function Home({ onNavigate }) {
               <ResourceBtn icon="🧮" label="Formulas" onClick={() => onNavigate('formulas')} />
               <ResourceBtn icon="🖼️" label="Diagrams" onClick={() => onNavigate('diagrams')} />
             </div>
+          </div>
+
+          {/* Daily Vocab */}
+          <div className="bg-slate-800/50 border border-slate-700 rounded-2xl px-4 py-3">
+            <div className="flex items-center gap-2 mb-2">
+              <span className="text-sm">📖</span>
+              <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Daily Term</p>
+              <span className="ml-auto text-xs text-amber-500/70 bg-amber-500/10 px-2 py-0.5 rounded-full">{dailyVocab.topic}</span>
+            </div>
+            <p className="font-bold text-sm text-amber-300 mb-1">{dailyVocab.term}</p>
+            <p className="text-xs text-slate-400 leading-relaxed line-clamp-3">{dailyVocab.definition}</p>
+            <button onClick={() => onNavigate('glossary')} className="text-xs text-amber-400 hover:underline mt-2 block">View full glossary →</button>
           </div>
 
           {/* Recent sessions */}
