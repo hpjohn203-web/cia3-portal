@@ -3,14 +3,14 @@ import questions from '../data/questions.json';
 import { useProgress } from '../hooks/useProgress';
 
 const TOPIC_ICONS = {
-  'Capital': '💰', 'Finance': '💰', 'Financial': '💰', 'NPV': '💰', 'IRR': '💰',
-  'IT': '🔒', 'Cyber': '🔒', 'Security': '🔒', 'Cloud': '🔒', 'Zero': '🔒',
-  'Data': '📊', 'Analytics': '📊', 'Database': '📊',
-  'Risk': '⚠️', 'ERM': '⚠️', 'Audit': '🔍', 'Internal': '🔍',
-  'Org': '🏢', 'Leadership': '🏢', 'Structure': '🏢',
-  'Strategy': '♟️', 'Porter': '♟️', 'BCG': '♟️', 'Market': '♟️',
-  'Supply': '🚚', 'Inventory': '🚚', 'Logistics': '🚚',
-  'IFRS': '📋', 'GAAP': '📋', 'Accounting': '📋',
+  'Financial': '💰', 'Finance': '💰', 'Budget': '💰', 'Capital': '💰', 'Cost': '💰',
+  'Audit': '🔍', 'Control': '🔍', 'Assurance': '🔍', 'Risk': '🔍',
+  'IT': '💻', 'Technology': '💻', 'Information': '💻', 'Data': '💻', 'Cyber': '💻',
+  'Governance': '⚖️', 'Ethics': '⚖️', 'Legal': '⚖️', 'Compliance': '⚖️', 'Regulatory': '⚖️',
+  'Business': '🏢', 'Process': '🏢', 'Operations': '🏢', 'Supply': '🏢',
+  'Statistics': '📈', 'Analytics': '📈', 'Quantitative': '📈', 'Performance': '📈',
+  'Management': '📋', 'Strategy': '📋', 'Planning': '📋',
+  'COSO': '🛡️', 'COBIT': '🛡️', 'Framework': '🛡️',
 };
 
 function getIcon(topic) {
@@ -21,19 +21,21 @@ function getIcon(topic) {
 }
 
 export default function Home({ onNavigate }) {
-  const { progress, getTopicStats, resetProgress } = useProgress();
+  const { progress, getTopicStats, getStudyStreak, getMasteredTopics, resetProgress } = useProgress();
   const topicStats = useMemo(() => getTopicStats(questions), [progress]);
+  const masteredTopics = useMemo(() => getMasteredTopics(questions), [progress]);
+  const streak = getStudyStreak();
 
-  const totalAttempted = Object.values(progress.cardStats).filter(
-    s => (s.correct + s.wrong) > 0
-  ).length;
-  const totalCorrect = Object.values(progress.cardStats).reduce(
-    (acc, s) => acc + s.correct, 0
-  );
-  const totalAnswered = Object.values(progress.cardStats).reduce(
-    (acc, s) => acc + s.correct + s.wrong, 0
-  );
+  const daysToExam = useMemo(() => {
+    if (!progress.examDate) return null;
+    return Math.ceil((new Date(progress.examDate) - new Date()) / (1000 * 60 * 60 * 24));
+  }, [progress.examDate]);
+
+  const totalAttempted = Object.values(progress.cardStats).filter(s => (s.correct + s.wrong) > 0).length;
+  const totalCorrect = Object.values(progress.cardStats).reduce((acc, s) => acc + s.correct, 0);
+  const totalAnswered = Object.values(progress.cardStats).reduce((acc, s) => acc + s.correct + s.wrong, 0);
   const overallPct = totalAnswered > 0 ? Math.round((totalCorrect / totalAnswered) * 100) : 0;
+  const errorCount = (progress.errorLog || []).length;
 
   const topics = Object.entries(topicStats)
     .sort((a, b) => b[1].total - a[1].total)
@@ -42,108 +44,182 @@ export default function Home({ onNavigate }) {
   const recentSessions = progress.sessionHistory.slice(0, 3);
 
   return (
-    <div className="min-h-screen bg-slate-900 text-slate-100 px-4 py-6 max-w-lg mx-auto">
-      {/* Header */}
-      <div className="mb-6">
+    <div className="px-4 py-6 lg:px-8 lg:py-8 max-w-6xl mx-auto">
+
+      {/* Exam countdown banner */}
+      {daysToExam !== null && (
+        <div className={`mb-5 rounded-2xl px-4 py-3 flex items-center gap-3 ${
+          daysToExam <= 0 ? 'bg-emerald-500/15 border border-emerald-500/30' :
+          daysToExam <= 7  ? 'bg-red-500/15 border border-red-500/30' :
+          daysToExam <= 30 ? 'bg-amber-500/15 border border-amber-500/30' :
+                             'bg-sky-500/15 border border-sky-500/30'
+        }`}>
+          <span className="text-2xl">{daysToExam <= 0 ? '🎓' : daysToExam <= 7 ? '🚨' : '📅'}</span>
+          <div className="flex-1 min-w-0">
+            {daysToExam <= 0
+              ? <p className="font-bold text-sm text-emerald-300">Exam day — good luck! 🎉</p>
+              : <p className="font-bold text-sm">
+                  <span className={daysToExam <= 7 ? 'text-red-300' : daysToExam <= 30 ? 'text-amber-300' : 'text-sky-300'}>
+                    {daysToExam} day{daysToExam !== 1 ? 's' : ''}
+                  </span>
+                  {' '}until your exam
+                </p>
+            }
+            <p className="text-xs text-slate-400">
+              {new Date(progress.examDate).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+            </p>
+          </div>
+          <button onClick={() => onNavigate('planner')} className="text-xs text-slate-400 hover:text-slate-200 shrink-0">Edit →</button>
+        </div>
+      )}
+
+      {/* Desktop header */}
+      <div className="hidden lg:flex items-center justify-between mb-8">
+        <div>
+          <h1 className="text-3xl font-bold text-amber-400">CIA Part 3</h1>
+          <p className="text-slate-400 text-sm mt-1">Exam Prep Portal · ApexCert Publications</p>
+        </div>
+        <span className="text-sm text-slate-400 bg-slate-800 px-3 py-1.5 rounded-full">{questions.length} Questions</span>
+      </div>
+
+      {/* Mobile header */}
+      <div className="lg:hidden mb-5">
         <div className="flex items-center justify-between mb-1">
           <h1 className="text-2xl font-bold text-amber-400">CIA Part 3</h1>
-          <span className="text-xs text-slate-400 bg-slate-800 px-2 py-1 rounded-full">500 Questions</span>
+          <span className="text-xs text-slate-400 bg-slate-800 px-2 py-1 rounded-full">{questions.length} Qs</span>
         </div>
-        <p className="text-slate-400 text-sm">Exam Prep Portal</p>
+        <p className="text-slate-400 text-sm">Exam Prep Portal · ApexCert Publications</p>
       </div>
 
-      {/* Overall stats */}
-      <div className="grid grid-cols-3 gap-3 mb-6">
-        <StatCard label="Studied" value={totalAttempted} total={questions.length} color="amber" />
-        <StatCard label="Accuracy" value={`${overallPct}%`} color="emerald" />
-        <StatCard label="Sessions" value={progress.sessionHistory.length} color="sky" />
-      </div>
-
-      {/* Action buttons */}
-      <div className="grid grid-cols-2 gap-3 mb-6">
-        <ActionBtn icon="🃏" label="Flashcards" sub="Flip to reveal" color="amber" onClick={() => onNavigate('study')} />
-        <ActionBtn icon="⏱️" label="Quiz Mode" sub="Timed MCQ" color="sky" onClick={() => onNavigate('quiz')} />
-        <ActionBtn icon="📹" label="Video Library" sub="Topic videos" color="violet" onClick={() => onNavigate('videos')} />
-        <ActionBtn icon="📊" label="My Results" sub="Progress report" color="emerald" onClick={() => onNavigate('results')} />
-      </div>
-
-      {/* Recent sessions */}
-      {recentSessions.length > 0 && (
-        <div className="mb-6">
-          <h2 className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-3">Recent Sessions</h2>
-          <div className="space-y-2">
-            {recentSessions.map((s, i) => (
-              <div key={i} className="bg-slate-800 rounded-xl px-4 py-3 flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium">{s.topic}</p>
-                  <p className="text-xs text-slate-400">{new Date(s.date).toLocaleDateString()}</p>
-                </div>
-                <div className="text-right">
-                  <p className="text-lg font-bold text-amber-400">{s.score}/{s.total}</p>
-                  <p className="text-xs text-slate-400">{Math.round((s.score/s.total)*100)}%</p>
-                </div>
-              </div>
+      {/* Mastery badges */}
+      {masteredTopics.length > 0 && (
+        <div className="mb-5 bg-slate-800/50 border border-amber-500/20 rounded-2xl px-4 py-3">
+          <p className="text-xs font-semibold text-amber-400 uppercase tracking-wider mb-2">🏆 Mastered Topics</p>
+          <div className="flex flex-wrap gap-2">
+            {masteredTopics.map(t => (
+              <span key={t} className="text-xs bg-amber-500/20 text-amber-300 border border-amber-500/30 px-2.5 py-1 rounded-full font-medium">
+                ⭐ {t}
+              </span>
             ))}
           </div>
         </div>
       )}
 
-      {/* Topic cards */}
-      <div className="mb-4">
-        <h2 className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-3">Topics</h2>
-        <div className="space-y-2">
-          {topics.map(([topic, stats]) => {
-            const pct = stats.attempted > 0 ? Math.round((stats.correct / stats.attempted) * 100) : 0;
-            const progress = Math.round((stats.attempted / stats.total) * 100);
-            return (
-              <div key={topic} className="bg-slate-800 rounded-xl px-4 py-3">
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-2">
-                    <span>{getIcon(topic)}</span>
-                    <span className="text-sm font-medium truncate max-w-[180px]">{topic}</span>
+      {/* Desktop: 2-column layout */}
+      <div className="lg:grid lg:grid-cols-[1fr_380px] lg:gap-8">
+
+        {/* Left column */}
+        <div className="space-y-6">
+          {/* Stats row */}
+          <div className="grid grid-cols-4 gap-3">
+            <StatCard label="Studied"  value={totalAttempted} sub={`of ${questions.length}`} color="amber" />
+            <StatCard label="Accuracy" value={`${overallPct}%`} color="emerald" />
+            <StatCard label="Sessions" value={progress.sessionHistory.length} color="sky" />
+            <StatCard label="Streak"   value={`${streak}d`} color="violet" />
+          </div>
+
+          {/* Action buttons */}
+          <div>
+            <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Quick Start</h2>
+            <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
+              <ActionBtn icon="🃏" label="Flashcards"    sub="Flip to reveal"   color="amber"   onClick={() => onNavigate('study')} />
+              <ActionBtn icon="⏱️" label="Quiz Mode"     sub="Timed MCQ"        color="sky"     onClick={() => onNavigate('quiz')} />
+              <ActionBtn icon="📊" label="My Progress"   sub="Stats & analysis" color="emerald" onClick={() => onNavigate('results')} />
+              <ActionBtn icon="📹" label="Video Library" sub="Topic videos"     color="violet"  onClick={() => onNavigate('videos')} />
+              <ActionBtn icon="📅" label="Study Planner" sub="Plan your week"   color="rose"    onClick={() => onNavigate('planner')} />
+              <ActionBtn
+                icon="⚠️"
+                label="Error Log"
+                sub={errorCount > 0 ? `${errorCount} to review` : 'Quiz mistakes'}
+                color={errorCount > 0 ? 'orange' : 'slate'}
+                onClick={() => onNavigate('errorlog')}
+              />
+            </div>
+          </div>
+
+          {/* Resources */}
+          <div>
+            <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Reference</h2>
+            <div className="grid grid-cols-3 gap-3">
+              <ResourceBtn icon="📖" label="Glossary" onClick={() => onNavigate('glossary')} />
+              <ResourceBtn icon="🧮" label="Formulas" onClick={() => onNavigate('formulas')} />
+              <ResourceBtn icon="🖼️" label="Diagrams" onClick={() => onNavigate('diagrams')} />
+            </div>
+          </div>
+
+          {/* Recent sessions */}
+          {recentSessions.length > 0 && (
+            <div>
+              <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Recent Sessions</h2>
+              <div className="space-y-2">
+                {recentSessions.map((s, i) => (
+                  <div key={i} className="bg-slate-800 rounded-xl px-4 py-3 flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium">{s.topic}</p>
+                      <p className="text-xs text-slate-400">{new Date(s.date).toLocaleDateString()}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-lg font-bold text-amber-400">{s.score}/{s.total}</p>
+                      <p className="text-xs text-slate-400">{Math.round((s.score / s.total) * 100)}%</p>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-slate-400">{stats.attempted}/{stats.total}</span>
-                    {stats.attempted > 0 && (
-                      <span className={`text-xs font-bold ${pct >= 70 ? 'text-emerald-400' : pct >= 50 ? 'text-amber-400' : 'text-red-400'}`}>
-                        {pct}%
-                      </span>
-                    )}
-                  </div>
-                </div>
-                <div className="h-1.5 bg-slate-700 rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-amber-400 rounded-full progress-bar-fill"
-                    style={{ width: `${progress}%` }}
-                  />
-                </div>
+                ))}
               </div>
-            );
-          })}
+            </div>
+          )}
+        </div>
+
+        {/* Right column — Topics */}
+        <div>
+          <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3 mt-6 lg:mt-0">Topics</h2>
+          <div className="space-y-2">
+            {topics.map(([topic, stats]) => {
+              const pct = stats.attempted > 0 ? Math.round((stats.correct / stats.attempted) * 100) : 0;
+              const prog = Math.round((stats.attempted / stats.total) * 100);
+              const mastered = masteredTopics.includes(topic);
+              return (
+                <div key={topic} className={`bg-slate-800 rounded-xl px-4 py-3 ${mastered ? 'border border-amber-500/25' : ''}`}>
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <span>{getIcon(topic)}</span>
+                      <span className="text-sm font-medium truncate max-w-[155px]">{topic}</span>
+                      {mastered && <span className="text-xs shrink-0">⭐</span>}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-slate-400">{stats.attempted}/{stats.total}</span>
+                      {stats.attempted > 0 && (
+                        <span className={`text-xs font-bold ${pct >= 70 ? 'text-emerald-400' : pct >= 50 ? 'text-amber-400' : 'text-red-400'}`}>
+                          {pct}%
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <div className="h-1.5 bg-slate-700 rounded-full overflow-hidden">
+                    <div className="h-full bg-amber-400 rounded-full progress-bar-fill" style={{ width: `${prog}%` }} />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          <button
+            onClick={() => { if (confirm('Reset all progress? This cannot be undone.')) resetProgress(); }}
+            className="w-full text-xs text-slate-600 hover:text-slate-400 py-4 mt-2 transition-colors"
+          >
+            Reset Progress
+          </button>
         </div>
       </div>
-
-      {/* Reset */}
-      <button
-        onClick={() => { if (confirm('Reset all progress?')) resetProgress(); }}
-        className="w-full text-xs text-slate-600 hover:text-slate-400 py-4 transition-colors"
-      >
-        Reset Progress
-      </button>
     </div>
   );
 }
 
-function StatCard({ label, value, total, color }) {
-  const colors = {
-    amber: 'text-amber-400',
-    emerald: 'text-emerald-400',
-    sky: 'text-sky-400',
-  };
+function StatCard({ label, value, sub, color }) {
+  const colors = { amber: 'text-amber-400', emerald: 'text-emerald-400', sky: 'text-sky-400', violet: 'text-violet-400' };
   return (
     <div className="bg-slate-800 rounded-xl p-3 text-center">
       <p className={`text-xl font-bold ${colors[color]}`}>{value}</p>
-      {total && <p className="text-[10px] text-slate-500">of {total}</p>}
+      {sub && <p className="text-[10px] text-slate-500">{sub}</p>}
       <p className="text-xs text-slate-400 mt-0.5">{label}</p>
     </div>
   );
@@ -151,19 +227,28 @@ function StatCard({ label, value, total, color }) {
 
 function ActionBtn({ icon, label, sub, color, onClick }) {
   const colors = {
-    amber: 'border-amber-500/30 hover:border-amber-500/60 hover:bg-amber-500/10',
-    sky: 'border-sky-500/30 hover:border-sky-500/60 hover:bg-sky-500/10',
-    violet: 'border-violet-500/30 hover:border-violet-500/60 hover:bg-violet-500/10',
+    amber:   'border-amber-500/30 hover:border-amber-500/60 hover:bg-amber-500/10',
+    sky:     'border-sky-500/30 hover:border-sky-500/60 hover:bg-sky-500/10',
+    violet:  'border-violet-500/30 hover:border-violet-500/60 hover:bg-violet-500/10',
     emerald: 'border-emerald-500/30 hover:border-emerald-500/60 hover:bg-emerald-500/10',
+    rose:    'border-rose-500/30 hover:border-rose-500/60 hover:bg-rose-500/10',
+    orange:  'border-orange-500/30 hover:border-orange-500/60 hover:bg-orange-500/10',
+    slate:   'border-slate-700 hover:border-slate-600 hover:bg-slate-800/50',
   };
   return (
-    <button
-      onClick={onClick}
-      className={`bg-slate-800 border ${colors[color]} rounded-2xl p-4 text-left transition-all active:scale-95`}
-    >
+    <button onClick={onClick} className={`bg-slate-800 border ${colors[color]} rounded-2xl p-4 text-left transition-all active:scale-95`}>
       <div className="text-2xl mb-1">{icon}</div>
       <p className="font-semibold text-sm">{label}</p>
       <p className="text-xs text-slate-400">{sub}</p>
+    </button>
+  );
+}
+
+function ResourceBtn({ icon, label, onClick }) {
+  return (
+    <button onClick={onClick} className="bg-slate-800 border border-slate-700 hover:border-slate-600 hover:bg-slate-750 rounded-xl p-3 text-center transition-all active:scale-95 w-full">
+      <div className="text-xl mb-1">{icon}</div>
+      <p className="text-xs font-medium text-slate-300">{label}</p>
     </button>
   );
 }
