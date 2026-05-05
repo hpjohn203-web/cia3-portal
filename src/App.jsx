@@ -30,14 +30,11 @@ export default function App() {
       const today = new Date().toDateString();
       const studiedToday = (data.sessionHistory || []).some(s => new Date(s.date).toDateString() === today);
       if (studiedToday) return;
-      const show = () => new Notification('CIA Part 3 Study Reminder 📚', {
-        body: "You haven't studied today yet — keep your streak going!",
-        icon: '/favicon.ico'
-      });
       if (Notification.permission === 'granted') {
-        show();
-      } else if (Notification.permission === 'default') {
-        Notification.requestPermission().then(perm => { if (perm === 'granted') show(); });
+        new Notification('CIA Part 3 Study Reminder 📚', {
+          body: "You haven't studied today yet — keep your streak going!",
+          icon: '/favicon.ico'
+        });
       }
     }, 4000);
     return () => clearTimeout(timer);

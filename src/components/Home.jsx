@@ -41,6 +41,19 @@ export default function Home({ onNavigate }) {
   const streak = getStudyStreak();
   const [showWelcome, setShowWelcome] = useState(() => !sessionStorage.getItem('cia3_welcome_shown'));
   function dismissWelcome() { sessionStorage.setItem('cia3_welcome_shown', '1'); setShowWelcome(false); }
+
+  const [showNotifBanner, setShowNotifBanner] = useState(() =>
+    'Notification' in window && Notification.permission === 'default' && !localStorage.getItem('cia3_notif_dismissed')
+  );
+  async function enableReminders() {
+    const perm = await Notification.requestPermission();
+    if (perm === 'granted') {
+      new Notification('CIA Part 3 Study Reminder 📚', { body: "Reminders enabled! We'll nudge you if you haven't studied today.", icon: '/favicon.ico' });
+    }
+    localStorage.setItem('cia3_notif_dismissed', '1');
+    setShowNotifBanner(false);
+  }
+  function dismissNotifBanner() { localStorage.setItem('cia3_notif_dismissed', '1'); setShowNotifBanner(false); }
   const todayCount = getTodayCount();
   const goalPerDay = progress.studyPlan?.goalPerDay || 20;
   const goalPct = Math.min(100, Math.round((todayCount / goalPerDay) * 100));
@@ -134,6 +147,19 @@ export default function Home({ onNavigate }) {
             </p>
           </div>
           <button onClick={() => onNavigate('planner')} className="text-xs text-slate-400 hover:text-slate-200 shrink-0">Edit →</button>
+        </div>
+      )}
+
+      {/* Notification opt-in banner */}
+      {showNotifBanner && (
+        <div className="mb-4 bg-slate-800 border border-slate-700 rounded-2xl p-3 flex items-center gap-3">
+          <span className="text-xl shrink-0">🔔</span>
+          <div className="flex-1 min-w-0">
+            <p className="text-xs font-semibold text-slate-200">Enable daily study reminders</p>
+            <p className="text-xs text-slate-500">Get notified if you haven't studied today</p>
+          </div>
+          <button onClick={enableReminders} className="text-xs bg-amber-500 text-slate-900 font-bold px-3 py-1.5 rounded-xl shrink-0 active:scale-95 transition-transform">Enable</button>
+          <button onClick={dismissNotifBanner} className="text-slate-500 hover:text-slate-300 text-lg leading-none shrink-0">✕</button>
         </div>
       )}
 
