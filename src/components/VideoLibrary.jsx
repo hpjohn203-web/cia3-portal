@@ -108,7 +108,7 @@ export default function VideoLibrary({ onNavigate }) {
           .map(group => (
             <div key={group.group}>
               <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">{group.group} <span className="text-slate-600">({group.videos.length})</span></h2>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-3">
                 {group.videos.map(video => {
                   const vid = getYouTubeId(video.url);
                   const isWatched = vid && watched[vid];

@@ -10,7 +10,7 @@ const TOPIC_ICONS = {
   'Toxicology': '💊', 'Documentation': '📋', 'Cause & Manner of Death': '⚖️',
 };
 
-export default function Diagrams() {
+export default function Diagrams({ onNavigate }) {
   const [topicFilter, setTopicFilter] = useState('All');
   const [activeItem, setActiveItem] = useState(null);
 
@@ -65,7 +65,7 @@ export default function Diagrams() {
         ))}
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
         {filtered.map((item, i) => {
           const Visual = DIAGRAM_VISUALS[item.visualKey];
           return (

@@ -66,7 +66,7 @@ export default function Formulas({ onNavigate }) {
               </button>
 
               {/* Formula box — always visible */}
-              <div className="mx-5 mb-4 bg-slate-900/60 rounded-xl px-4 py-3 font-mono text-sm text-amber-300 leading-relaxed border border-slate-700/50">
+              <div className="mx-5 mb-4 bg-slate-900/60 rounded-xl px-4 py-3 font-mono text-sm text-amber-300 leading-relaxed border border-slate-700/50 overflow-x-auto">
                 {f.formula}
               </div>
 
