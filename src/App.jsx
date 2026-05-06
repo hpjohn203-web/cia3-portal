@@ -12,6 +12,8 @@ import StudyPlanner from './components/StudyPlanner';
 import ErrorLog from './components/ErrorLog';
 import Bookmarks from './components/Bookmarks';
 import Search from './components/Search';
+import Contact from './components/Contact';
+import ExamMode from './components/ExamMode';
 
 export default function App() {
   const [screen, setScreen] = useState('home');
@@ -78,6 +80,8 @@ export default function App() {
       {screen === 'errorlog'  && <ErrorLog onNavigate={setScreen} />}
       {screen === 'bookmarks' && <Bookmarks onNavigate={setScreen} />}
       {screen === 'search'    && <Search onNavigate={setScreen} />}
+      {screen === 'contact'   && <Contact onNavigate={setScreen} />}
+      {screen === 'exam'      && <ExamMode onNavigate={setScreen} />}
     </Layout>
   );
 }

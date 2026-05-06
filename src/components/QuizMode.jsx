@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import questions from '../data/questions.json';
 import { useProgress } from '../hooks/useProgress';
+import ReviewNudge, { checkAndIncrementNudge } from './ReviewNudge';
 
 const TOPICS = ['All', ...Array.from(new Set(questions.map(q => q.topic))).sort()];
 const QUIZ_SIZES = [10, 20, 30, 50];
@@ -17,12 +18,11 @@ export default function QuizMode({ onNavigate }) {
   const [selected, setSelected] = useState(null);
   const [answers, setAnswers] = useState([]);
   const [timeLeft, setTimeLeft] = useState(0);
-  const [showExplain, setShowExplain] = useState(false);
+  const [showNudge, setShowNudge] = useState(false);
 
   const currentQ = quiz[qIndex];
   const isAnswered = selected !== null;
 
-  // Auto-start drill from "Drill Weak Topics" button on dashboard
   useEffect(() => {
     const raw = sessionStorage.getItem('drillWeakTopics');
     if (raw) {
@@ -33,7 +33,7 @@ export default function QuizMode({ onNavigate }) {
         if (pool.length > 0) {
           const shuffled = [...pool].sort(() => Math.random() - 0.5).slice(0, Math.min(20, pool.length));
           setTopicFilter('Weak Topics');
-          setQuiz(shuffled); setQIndex(0); setSelected(null); setAnswers([]); setShowExplain(false); setPhase('quiz');
+          setQuiz(shuffled); setQIndex(0); setSelected(null); setAnswers([]); setPhase('quiz');
         }
       } catch {}
     }
@@ -54,7 +54,7 @@ export default function QuizMode({ onNavigate }) {
   function startQuiz() {
     let pool = topicFilter === 'All' ? questions : questions.filter(q => q.topic === topicFilter);
     const shuffled = [...pool].sort(() => Math.random() - 0.5).slice(0, quizSize);
-    setQuiz(shuffled); setQIndex(0); setSelected(null); setAnswers([]); setShowExplain(false); setPhase('quiz');
+    setQuiz(shuffled); setQIndex(0); setSelected(null); setAnswers([]); setPhase('quiz');
   }
 
   const handleSelect = useCallback((letter) => {
@@ -77,14 +77,20 @@ export default function QuizMode({ onNavigate }) {
         selected: a.selected, correct: a.correct,
       }));
       saveSession(finalScore, quiz.length, topicFilter, questionResults);
+      if (checkAndIncrementNudge()) setShowNudge(true);
       setPhase('review');
     } else {
-      setQIndex(i => i + 1); setSelected(null); setShowExplain(false);
+      setQIndex(i => i + 1); setSelected(null);
     }
   }
 
   if (phase === 'setup') return <SetupScreen topicFilter={topicFilter} setTopicFilter={setTopicFilter} quizSize={quizSize} setQuizSize={setQuizSize} timerOn={timerOn} setTimerOn={setTimerOn} timePerQ={timePerQ} setTimePerQ={setTimePerQ} onStart={startQuiz} onBack={() => onNavigate('home')} topics={TOPICS} />;
-  if (phase === 'review') return <ReviewScreen quiz={quiz} answers={answers} onRetry={startQuiz} onHome={() => onNavigate('home')} onResults={() => onNavigate('results')} onErrorLog={() => onNavigate('errorlog')} />;
+  if (phase === 'review') return (
+    <>
+      <ReviewScreen quiz={quiz} answers={answers} onRetry={startQuiz} onHome={() => onNavigate('home')} onResults={() => onNavigate('results')} onErrorLog={() => onNavigate('errorlog')} />
+      {showNudge && <ReviewNudge onClose={() => setShowNudge(false)} />}
+    </>
+  );
   if (!currentQ) return null;
 
   const timerPct = timerOn ? (timeLeft / timePerQ) * 100 : 100;
@@ -116,19 +122,16 @@ export default function QuizMode({ onNavigate }) {
         <div className="space-y-3">
           {currentQ.options.map((opt, i) => {
             const letter = 'ABCD'[i];
-            const isCorrect = letter === currentQ.answer;
             const isSelected = letter === selected;
-            let cls = 'bg-slate-800 border border-slate-700 text-slate-200';
-            if (isAnswered) {
-              if (isCorrect) cls = 'bg-emerald-500/20 border border-emerald-500 text-emerald-300';
-              else if (isSelected) cls = 'bg-red-500/20 border border-red-500 text-red-300';
-              else cls = 'bg-slate-800 border border-slate-700 text-slate-400';
-            }
             return (
               <button key={letter} onClick={() => handleSelect(letter)} disabled={isAnswered}
-                className={`w-full text-left rounded-2xl px-4 py-3.5 transition-all active:scale-[0.98] ${cls}`}>
+                className={`w-full text-left rounded-2xl px-4 py-3.5 transition-all active:scale-[0.98] ${
+                  isSelected
+                    ? 'bg-amber-500/20 border border-amber-500 text-amber-100'
+                    : `bg-slate-800 border border-slate-700 text-slate-200 ${!isAnswered ? 'hover:border-slate-600' : 'opacity-60'}`
+                }`}>
                 <div className="flex items-start gap-3">
-                  <span className={`font-bold text-sm shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-xs ${isAnswered && isCorrect ? 'bg-emerald-500 text-white' : isAnswered && isSelected ? 'bg-red-500 text-white' : 'bg-slate-700 text-slate-300'}`}>{letter}</span>
+                  <span className={`font-bold text-sm shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-xs ${isSelected ? 'bg-amber-500 text-slate-900' : 'bg-slate-700 text-slate-300'}`}>{letter}</span>
                   <span className="text-sm leading-relaxed">{opt}</span>
                 </div>
               </button>
@@ -136,10 +139,7 @@ export default function QuizMode({ onNavigate }) {
           })}
         </div>
         {isAnswered && (
-          <div className="mt-4">
-            <button onClick={() => setShowExplain(e => !e)} className="text-xs text-amber-400 underline mb-2">{showExplain ? 'Hide' : 'Show'} explanation</button>
-            {showExplain && <div className="bg-slate-800 rounded-2xl p-4 text-xs text-slate-300 leading-relaxed">{currentQ.explanation}</div>}
-          </div>
+          <p className="text-center text-xs text-slate-500 mt-4">Answer locked in — results revealed at the end.</p>
         )}
       </div>
 
@@ -193,6 +193,9 @@ function SetupScreen({ topicFilter, setTopicFilter, quizSize, setQuizSize, timer
             </div>
           )}
         </Section>
+        <div className="bg-slate-800/50 border border-slate-700/50 rounded-xl px-4 py-3 text-xs text-slate-400 leading-relaxed">
+          💡 Answers are revealed at the end so you can review all questions at once.
+        </div>
       </div>
       <div className="px-4 pb-8">
         <button onClick={onStart} className="w-full bg-amber-500 hover:bg-amber-400 text-slate-900 font-bold py-4 rounded-2xl transition-colors active:scale-95 text-lg">Start Quiz ⏱</button>
@@ -209,41 +212,106 @@ function Section({ label, children }) {
 function ReviewScreen({ quiz, answers, onRetry, onHome, onResults, onErrorLog }) {
   const score = answers.filter(a => a.correct).length;
   const pct = Math.round((score / quiz.length) * 100);
-  const [showWrong, setShowWrong] = useState(false);
-  const wrong = quiz.filter((_, i) => answers[i] && !answers[i].correct);
+  const wrongCount = quiz.length - score;
+  const [expandedIndex, setExpandedIndex] = useState(null);
+
   return (
     <div className="min-h-[calc(100vh-3.5rem)] lg:min-h-screen flex flex-col max-w-2xl mx-auto">
-      <div className="flex-1 flex flex-col items-center justify-center px-4 py-8">
-        <div className="text-7xl mb-4">{pct >= 80 ? '🏆' : pct >= 60 ? '👍' : '📚'}</div>
-        <h2 className="text-3xl font-bold mb-1"><span className={pct >= 80 ? 'text-emerald-400' : pct >= 60 ? 'text-amber-400' : 'text-red-400'}>{pct}%</span></h2>
-        <p className="text-slate-400 text-sm mb-6">{score} out of {quiz.length} correct</p>
-        <div className="w-full grid grid-cols-2 gap-3 mb-6">
-          <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-2xl p-4 text-center"><p className="text-2xl font-bold text-emerald-400">{score}</p><p className="text-xs text-slate-400">Correct</p></div>
-          <div className="bg-red-500/10 border border-red-500/30 rounded-2xl p-4 text-center"><p className="text-2xl font-bold text-red-400">{quiz.length - score}</p><p className="text-xs text-slate-400">Wrong</p></div>
-        </div>
-        {wrong.length > 0 && (
-          <div className="w-full mb-4">
-            <button onClick={() => setShowWrong(w => !w)} className="w-full text-left bg-slate-800 rounded-2xl px-4 py-3 flex items-center justify-between text-sm">
-              <span>Review {wrong.length} missed questions</span><span className="text-slate-400">{showWrong ? '▲' : '▼'}</span>
-            </button>
-            {showWrong && (
-              <div className="mt-2 space-y-3 max-h-64 overflow-y-auto">
-                {wrong.map(q => (
-                  <div key={q.id} className="bg-slate-800 rounded-2xl p-4 text-xs">
-                    <p className="text-slate-300 leading-relaxed mb-2">{q.question.slice(0, 120)}…</p>
-                    <p className="text-emerald-400 font-semibold">✓ {q.answer}. {q.options['ABCD'.indexOf(q.answer)]}</p>
-                    <p className="text-red-400">✗ {answers[quiz.indexOf(q)]?.selected ? `${answers[quiz.indexOf(q)].selected}. ${q.options['ABCD'.indexOf(answers[quiz.indexOf(q)].selected)]}` : 'Timed out'}</p>
-                  </div>
-                ))}
-              </div>
-            )}
+      {/* Score summary */}
+      <div className="px-4 py-5 border-b border-slate-800 text-center">
+        <div className="text-5xl mb-2">{pct >= 80 ? '🏆' : pct >= 60 ? '👍' : '📚'}</div>
+        <h2 className="text-4xl font-bold mb-1">
+          <span className={pct >= 80 ? 'text-emerald-400' : pct >= 60 ? 'text-amber-400' : 'text-red-400'}>{pct}%</span>
+        </h2>
+        <p className="text-slate-400 text-sm mb-4">{score} of {quiz.length} correct</p>
+        <div className="grid grid-cols-2 gap-3 max-w-xs mx-auto">
+          <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-2xl p-3 text-center">
+            <p className="text-2xl font-bold text-emerald-400">{score}</p>
+            <p className="text-xs text-slate-400">Correct</p>
           </div>
-        )}
-        <div className="w-full space-y-3">
-          <button onClick={onRetry} className="w-full bg-amber-500 hover:bg-amber-400 text-slate-900 font-bold py-4 rounded-2xl active:scale-95 transition-all">Try Again</button>
-          {wrong.length > 0 && <button onClick={onErrorLog} className="w-full bg-red-500/20 border border-red-500/30 text-red-400 font-semibold py-3 rounded-2xl active:scale-95 transition-all text-sm">⚠️ View Error Log ({wrong.length} added)</button>}
-          <button onClick={onResults} className="w-full bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold py-3 rounded-2xl active:scale-95 transition-all">View Progress</button>
-          <button onClick={onHome} className="w-full text-slate-400 hover:text-slate-200 py-2 text-sm transition-colors">Back to Home</button>
+          <div className="bg-red-500/10 border border-red-500/30 rounded-2xl p-3 text-center">
+            <p className="text-2xl font-bold text-red-400">{wrongCount}</p>
+            <p className="text-xs text-slate-400">Wrong</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Full question review */}
+      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-2">
+        <p className="text-xs text-slate-500 uppercase tracking-wider font-semibold mb-3">Review All Questions</p>
+        {quiz.map((q, i) => {
+          const ans = answers[i];
+          const isCorrect = ans?.correct;
+          const isExpanded = expandedIndex === i;
+          return (
+            <div key={q.id} className={`rounded-2xl border overflow-hidden ${isCorrect ? 'bg-emerald-500/5 border-emerald-500/20' : 'bg-red-500/5 border-red-500/20'}`}>
+              <button className="w-full text-left px-4 py-3" onClick={() => setExpandedIndex(isExpanded ? null : i)}>
+                <div className="flex items-start gap-3">
+                  <span className={`shrink-0 text-sm font-bold mt-0.5 ${isCorrect ? 'text-emerald-400' : 'text-red-400'}`}>
+                    {isCorrect ? '✓' : '✗'}
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs text-slate-500 mb-0.5">{q.topic} · Q{i + 1}</p>
+                    <p className="text-sm text-slate-200 leading-relaxed line-clamp-2">{q.question}</p>
+                    {!isExpanded && (
+                      <div className="flex gap-2 mt-1.5 flex-wrap">
+                        <span className="text-xs px-2 py-0.5 rounded-lg bg-emerald-500/20 text-emerald-300">
+                          ✓ {q.answer}. {q.options['ABCD'.indexOf(q.answer)]}
+                        </span>
+                        {!isCorrect && ans?.selected && (
+                          <span className="text-xs px-2 py-0.5 rounded-lg bg-red-500/20 text-red-300">
+                            ✗ {ans.selected}. {q.options['ABCD'.indexOf(ans.selected)]}
+                          </span>
+                        )}
+                        {!isCorrect && !ans?.selected && (
+                          <span className="text-xs px-2 py-0.5 rounded-lg bg-slate-700 text-slate-400">Timed out</span>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                  <span className="text-slate-600 text-xs shrink-0 mt-0.5">{isExpanded ? '▲' : '▼'}</span>
+                </div>
+              </button>
+              {isExpanded && (
+                <div className="px-4 pb-4 space-y-2 border-t border-slate-800/60">
+                  <p className="text-sm text-slate-200 leading-relaxed pt-3">{q.question}</p>
+                  <div className="space-y-1.5">
+                    {q.options.map((opt, oi) => {
+                      const letter = 'ABCD'[oi];
+                      const isKey = letter === q.answer;
+                      const isPick = letter === ans?.selected;
+                      let cls = 'bg-slate-800/60 text-slate-400';
+                      if (isKey) cls = 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40';
+                      else if (isPick) cls = 'bg-red-500/20 text-red-300 border border-red-500/40';
+                      return (
+                        <div key={letter} className={`rounded-xl px-3 py-2 text-xs flex items-start gap-2 ${cls}`}>
+                          <span className="font-bold shrink-0">{letter}.</span>
+                          <span className="flex-1">{opt}</span>
+                          {isKey && <span className="shrink-0 text-emerald-400">✓</span>}
+                          {isPick && !isKey && <span className="shrink-0 text-red-400">✗</span>}
+                        </div>
+                      );
+                    })}
+                  </div>
+                  {q.explanation && (
+                    <div className="bg-slate-900/60 rounded-xl px-3 py-2.5 text-xs text-slate-300 leading-relaxed">
+                      <span className="text-amber-400 font-semibold">Explanation: </span>{q.explanation}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Action buttons */}
+      <div className="px-4 pb-6 pt-3 border-t border-slate-800 space-y-2">
+        <button onClick={onRetry} className="w-full bg-amber-500 hover:bg-amber-400 text-slate-900 font-bold py-3.5 rounded-2xl active:scale-95 transition-all">Try Again</button>
+        {wrongCount > 0 && <button onClick={onErrorLog} className="w-full bg-red-500/20 border border-red-500/30 text-red-400 font-semibold py-3 rounded-2xl active:scale-95 transition-all text-sm">⚠️ View Error Log ({wrongCount} added)</button>}
+        <div className="grid grid-cols-2 gap-2">
+          <button onClick={onResults} className="bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold py-3 rounded-2xl active:scale-95 transition-all text-sm">View Progress</button>
+          <button onClick={onHome} className="bg-slate-800 hover:bg-slate-700 text-slate-400 font-semibold py-3 rounded-2xl active:scale-95 transition-all text-sm">Home</button>
         </div>
       </div>
     </div>

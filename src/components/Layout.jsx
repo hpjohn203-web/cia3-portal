@@ -6,6 +6,7 @@ const NAV_GROUPS = [
       { id: 'home',      icon: '🏠', label: 'Dashboard' },
       { id: 'study',     icon: '🃏', label: 'Flashcards' },
       { id: 'quiz',      icon: '⏱️', label: 'Quiz Mode' },
+      { id: 'exam',      icon: '📝', label: 'Full Exam' },
       { id: 'results',   icon: '📊', label: 'My Progress' },
     ],
   },
@@ -25,6 +26,7 @@ const NAV_GROUPS = [
       { id: 'errorlog',  icon: '⚠️', label: 'Error Log' },
       { id: 'bookmarks', icon: '🔖', label: 'Bookmarks' },
       { id: 'search',    icon: '🔍', label: 'Search' },
+      { id: 'contact',   icon: '💬', label: 'Rate & Review' },
     ],
   },
 ];

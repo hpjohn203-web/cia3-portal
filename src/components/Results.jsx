@@ -100,7 +100,7 @@ export default function Results({ onNavigate }) {
             <Section title="⚠️ Weak Areas — Focus Here">
               {weak.map(t => <TopicBar key={t.topic} {...t} />)}
               <button onClick={() => onNavigate('quiz')}
-                className="w-full mt-3 bg-red-500/20 border border-red-500/30 text-red-400 text-sm font-semibold py-3 rounded-xl active:scale-95 transition-all">
+                className="w-full mt-3 bg-red-500/20 border border-red-500/30 hover:bg-red-500/30 hover:border-red-500/50 text-red-400 text-sm font-semibold py-3 rounded-xl active:scale-95 transition-all">
                 Quiz on Weak Topics →
               </button>
             </Section>
