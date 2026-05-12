@@ -43,7 +43,7 @@ export const VIDEO_LIBRARY = [
     videos: [
       { title: "Maslow, Herzberg & McGregor Motivation Theories", url: "https://www.youtube.com/watch?v=YV_LBx3t6pA" },
       { title: "Herzberg's Two-Factor Theory", url: "https://www.youtube.com/watch?v=Le5Wfk4zWd8" },
-      { title: "Motivation Theories with Examples", url: "https://www.youtube.com/watch?v=pjgdvp2f_cs" },
+      { title: "Theories of Motivation — Maslow, Herzberg, Mcclelland, Vroom, McGregor", url: "https://www.youtube.com/watch?v=ePfZvm9CuTY" },
     ],
   },
   {
